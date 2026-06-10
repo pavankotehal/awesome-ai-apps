@@ -1,11 +1,10 @@
-"""LangGraph starter — a prebuilt ReAct agent powered by Nebius."""
+"""LangGraph starter — a prebuilt ReAct agent powered by Nebius via LiteLLM."""
 import os
 from datetime import datetime
 
 from dotenv import load_dotenv
-from pydantic import SecretStr
+from langchain_litellm import ChatLiteLLM
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
 load_dotenv()
@@ -24,10 +23,10 @@ def word_count(text: str) -> int:
 
 
 def build_agent():
-    llm = ChatOpenAI(
-        model="Qwen/Qwen3-30B-A3B",
-        base_url="https://api.tokenfactory.nebius.com/v1/",
-        api_key=SecretStr(os.environ["NEBIUS_API_KEY"]),
+    llm = ChatLiteLLM(
+        model="openai/deepseek-ai/DeepSeek-V3.2",
+        api_base="https://api.tokenfactory.nebius.com/v1/",
+        api_key=os.environ["NEBIUS_API_KEY"],
     )
 
     return create_react_agent(
