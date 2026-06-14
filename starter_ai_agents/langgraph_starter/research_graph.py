@@ -18,6 +18,7 @@ from langgraph.checkpoint.memory import MemorySaver
 # For persistent local storage uncomment the line below and install:
 #   pip install langgraph-checkpoint-sqlite
 # from langgraph.checkpoint.sqlite import SqliteSaver
+from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.graph.message import add_messages
@@ -29,6 +30,11 @@ from langgraph.graph.message import add_messages
 class State(TypedDict):
     messages: Annotated[list, add_messages]
     turn_count: int # example of another state variable with a reducer
+
+# pydantic model to define the expected output of the summarizer_node. 
+# This isn't strictly necessary, but it can help catch errors and clarify intent.
+class SummaryResponse(BaseModel):
+    summary: list[str] = Field(description="A list of 3 bullet points summarizing the research findings.")
 
 
 load_dotenv()
@@ -93,19 +99,20 @@ def build_agent():
                 "turn_count": state["turn_count"] + 1,}  # add_messages reducer appends this
 
     def summarizer_node(state: State):
-        # This is an example of a second agent node that could be used for summarization.
-        # # call the LLM with a prompt like:
-        # "Summarize the research findings from this conversation in 3 bullet points"
         system = {
             "role": "system",
             "content": (
-                "You are a research assistant. Summarize the research findings from this conversation in 3 bullet points. "
-                "instead of guessing."
+                "You are a research assistant. Summarize the research findings "
+                "from this conversation in 3 bullet points."
             ),
         }
-        # Send the full conversation history on every call — LLM has no memory between calls.
-        response = llm.invoke([system] + state["messages"])
-        return {"messages": [response]}  # add_messages reducer appends this
+        # with_structured_output forces the LLM to populate SummaryResponse.
+        # Scoped only to this node — agent_node still returns free-form AIMessages.
+        structured_llm = llm.with_structured_output(SummaryResponse)
+        response: SummaryResponse = structured_llm.invoke([system] + state["messages"])
+        # Join the bullet list into a single string for the message content
+        content = "\n".join(f"• {point}" for point in response.summary)
+        return {"messages": [AIMessage(content=content)]}
     
     def tools_condition_fn(state: State):
         if state["turn_count"] > 2:
