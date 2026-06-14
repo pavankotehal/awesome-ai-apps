@@ -1,0 +1,174 @@
+{
+  "thread_id": "session-1",
+  "turn_count": 1,
+  "messages": [
+    {
+      "type": "human",
+      "data": {
+        "content": "what was the last message?",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "f3912e8b-e335-4fdf-a963-03ba854ed6c8"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "I don't have access to previous messages in our conversation history. Each message I receive is processed independently, so I can't see what was discussed before this current message.\n\nIf you're referring to something specific from our conversation, could you please provide more context or repeat your question? I'll be happy to help you with whatever you need!",
+        "additional_kwargs": {
+          "provider_specific_fields": {
+            "reasoning": null,
+            "refusal": null
+          }
+        },
+        "response_metadata": {
+          "token_usage": {
+            "completion_tokens": 69,
+            "prompt_tokens": 404,
+            "total_tokens": 473,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cached_tokens": 384,
+              "text_tokens": null,
+              "image_tokens": null,
+              "video_tokens": null
+            }
+          },
+          "model": "openai/deepseek-ai/DeepSeek-V3.2",
+          "finish_reason": "stop",
+          "logprobs": null,
+          "model_name": "openai/deepseek-ai/DeepSeek-V3.2",
+          "model_provider": "litellm"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "lc_run--019ec615-21f7-7773-b128-0c0610380e65-0",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": {
+          "input_tokens": 404,
+          "output_tokens": 69,
+          "total_tokens": 473,
+          "input_token_details": {
+            "cache_read": 384
+          }
+        }
+      }
+    },
+    {
+      "type": "human",
+      "data": {
+        "content": "give me the last question i asked you in our conversation",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "c6e1996b-0d2e-48aa-a228-c9b2302bca11"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "I don't have access to our conversation history, so I can't see your previous questions. Each message I receive is processed independently without access to previous interactions.\n\nYour current message is asking me to recall your last question, but I don't have the ability to look back at our conversation history. If you could remind me what you previously asked about, I'd be happy to help you with it!",
+        "additional_kwargs": {
+          "provider_specific_fields": {
+            "reasoning": null,
+            "refusal": null
+          }
+        },
+        "response_metadata": {
+          "token_usage": {
+            "completion_tokens": 81,
+            "prompt_tokens": 487,
+            "total_tokens": 568,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cached_tokens": 448,
+              "text_tokens": null,
+              "image_tokens": null,
+              "video_tokens": null
+            }
+          },
+          "model": "openai/deepseek-ai/DeepSeek-V3.2",
+          "finish_reason": "stop",
+          "logprobs": null,
+          "model_name": "openai/deepseek-ai/DeepSeek-V3.2",
+          "model_provider": "litellm"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "lc_run--019ec615-82ce-7432-b580-0da48740e025-0",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": {
+          "input_tokens": 487,
+          "output_tokens": 81,
+          "total_tokens": 568,
+          "input_token_details": {
+            "cache_read": 448
+          }
+        }
+      }
+    },
+    {
+      "type": "human",
+      "data": {
+        "content": "i thinkyou have access to memory.json",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "0700e1ae-57a8-4a95-99a6-52433a2e4bc8"
+      }
+    },
+    {
+      "type": "ai",
+      "data": {
+        "content": "I don't have access to any files or memory systems like \"memory.json\" in our current conversation. I'm a language model that processes each message independently without persistent memory between conversations.\n\nIf you're referring to something specific or trying to access a file, could you please clarify what you're looking for? I can help you with various tasks using the tools available to me, but I don't have access to external files or conversation history.",
+        "additional_kwargs": {
+          "provider_specific_fields": {
+            "reasoning": null,
+            "refusal": null
+          }
+        },
+        "response_metadata": {
+          "token_usage": {
+            "completion_tokens": 89,
+            "prompt_tokens": 579,
+            "total_tokens": 668,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": {
+              "audio_tokens": null,
+              "cached_tokens": 512,
+              "text_tokens": null,
+              "image_tokens": null,
+              "video_tokens": null
+            }
+          },
+          "model": "openai/deepseek-ai/DeepSeek-V3.2",
+          "finish_reason": "stop",
+          "logprobs": null,
+          "model_name": "openai/deepseek-ai/DeepSeek-V3.2",
+          "model_provider": "litellm"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "lc_run--019ec615-c614-7120-b75c-eceb063f9711-0",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": {
+          "input_tokens": 579,
+          "output_tokens": 89,
+          "total_tokens": 668,
+          "input_token_details": {
+            "cache_read": 512
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+Based on your progress, the next natural step is persistent memory with checkpointers — the most
+  common real-world LangGraph feature.
+
+  ---
+  Assignment 2: Persistent Memory with MemorySaver
+  
+  Right now your agent forgets everything when the script restarts. A checkpointer saves the graph
+  state after every node so it can be resumed later — same conversation, different invoke call.
+
+  ---
+  The new concept: thread_id
+
+  from langgraph.checkpoint.memory import MemorySaver
+
+  checkpointer = MemorySaver()
+  agent = graph.compile(checkpointer=checkpointer)
+
+  # Every invoke needs a config with a thread_id
+  config = {"configurable": {"thread_id": "user-123"}}
+  agent.invoke({"messages": [...]}, config=config)
+
+  Same thread_id = same conversation memory. Different thread_id = fresh conversation.
+
+  ---
+  What to build
+
+  Take your research_graph.py as a starting point. Create memory_graph.py with these changes:
+
+  1. Add MemorySaver
+  from langgraph.checkpoint.memory import MemorySaver
+  Pass it to graph.compile(checkpointer=checkpointer).
+  
+  2. Stop carrying messages manually in main()
+
+  Right now you do this:
+  messages = []
+  messages.append({"role": "user", "content": user})
+  result = agent.invoke({"messages": messages, "turn_count": 0})
+  messages = result["messages"]
+  
+  With a checkpointer, the graph stores the full history internally — you only need to pass the new
+  message each turn:
+  result = agent.invoke(
+      {"messages": [{"role": "user", "content": user}]},
+      config=config
+  )   
+  
+  Figure out why this works — what is the checkpointer doing between turns?
+
+  3. Support multiple conversation threads
+
+  At startup, ask the user for a thread_id:
+  thread_id = input("Enter conversation ID (or press Enter for 'default'): ").strip()
+  thread_id = thread_id or "default"
+  config = {"configurable": {"thread_id": thread_id}}
+
+  Same ID = resumes previous conversation. New ID = fresh start.
+
+  ---
+  What you need to figure out yourself
+  
+  1. Where does MemorySaver actually store data? (hint: in-memory only — what does that mean for
+  restarts?)
+  2. How do you read the saved state back for a thread? Look up agent.get_state(config)
+  3. With checkpointing, turn_count now persists across turns — you no longer want to pass
+  "turn_count": 0 on every invoke. How do you handle the first invoke vs subsequent ones?
+
+  ---
+  Stretch goal
+  
+  Print the conversation history when the user types history:
+
+  if user.lower() == "history":
+      state = agent.get_state(config)
+      for msg in state.values["messages"]:
+          print(f"{msg.type}: {msg.content}")
+      continue
+
+  ---
+  Success criteria
+  
+  - Same thread_id resumes the conversation (agent remembers what was said earlier in the same run)
+  - Different thread_id starts fresh
+  - history command prints the full message log for the current thread
+  - You are NOT manually carrying messages = [] across turns
+
+  Give it a go and share when ready.
