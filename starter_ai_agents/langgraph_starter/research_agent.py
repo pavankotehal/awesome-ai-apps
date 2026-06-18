@@ -68,11 +68,11 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
             ),
         }
         # print the current state for debugging
-        print("Current state in agent_node:", state["messages"])
+        # print("Current state in agent_node:", state["messages"])
         # Send the full conversation history on every call — LLM has no memory between calls.
         response = llm_with_tools.invoke([system] + state["messages"])
-        print("Agent node response:", response.content)
-        print(f"\nTool calls: {response.tool_calls}\n")
+        # print("Agent node response:", response.content)
+        # print(f"\nTool calls: {response.tool_calls}\n")
         return {"messages": [response],
                 "turn_count": state["turn_count"] + 1,}  # add_messages reducer appends this
     
@@ -94,7 +94,7 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
         user = {"role": "user", "content": combined}
 
         response = llm.invoke([system, user])
-        print("Summarizer response:", response.content)
+        # print("Summarizer response:", response.content)
         return {"messages": [response],
                 "turn_count": state["turn_count"] + 1,}  # add_messages reducer appends this
     
@@ -108,7 +108,7 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
         }
         with open("research_results.txt", "a") as f:
             f.write(json.dumps(result) + "\n")
-        print("Results saved to research_results.txt")
+        # print("Results saved to research_results.txt")
         return {}
     
 
@@ -177,8 +177,15 @@ if __name__ == "__main__":
             research_findings=research_findings,
             research_sources=research_sources,
         )
-        final_state = graph.invoke(state)
-        messages = final_state["messages"]
+        accumulated_messages = list(messages)
+        for chunk in graph.stream(state):
+            for node_name, node_output in chunk.items():
+                if "messages" in node_output:
+                    for msg in node_output["messages"]:
+                        accumulated_messages.append(msg)
+                        if hasattr(msg, "content") and msg.content:
+                            print(f"\n[{node_name}]: {msg.content}")
+        messages = accumulated_messages
 
         if cycle == MAX_CYCLES - 1:
             print("\nReached maximum of 7 questions. Ending session.")
