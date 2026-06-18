@@ -32,38 +32,14 @@ Three tasks, each teaching a new LangGraph primitive. Do them in order.
 ### Task 1 — Streaming output
 **Concept:** `graph.stream()` instead of `graph.invoke()`
 
-Right now the agent is silent until it finishes. Fix that.
-
-**What to do:**
-- In the `__main__` loop, replace `graph.invoke(state)` with `graph.stream(state)`
-- Print each chunk as it arrives. LangGraph streams events as dicts — key is the node name, value is the partial state update.
-- You should see output appear token-by-token (or node-by-node) instead of waiting for the full answer.
-
-**Verify:** You see `agent_node`, `tool_node`, `summarizer_node` output appearing progressively in the terminal, not all at once.
-
-**Key thing to understand:** `stream()` yields `{node_name: state_update}` dicts. You'll need to decide what to print from each.
-
-**Status:** [ ] Not started
+**Status:** ✅ Done
 
 ---
 
 ### Task 2 — Persistent memory with MemorySaver
 **Concept:** Checkpointers + `thread_id`
 
-Right now you manually carry `messages` between cycles. LangGraph can do this for you.
-
-**What to do:**
-1. Import `MemorySaver` from `langgraph.checkpoint.memory`
-2. Pass it to `graph.compile(checkpointer=MemorySaver())`
-3. In `__main__`, create a single `config = {"configurable": {"thread_id": "research-session-1"}}`
-4. Pass that config to every `graph.invoke(state, config=config)` call
-5. Remove the manual `messages = final_state["messages"]` carry-over — the checkpointer handles it
-
-**Verify:** On the second question, the agent still has the first question in its history — but you didn't wire it manually.
-
-**Key thing to understand:** A `thread_id` is like a conversation ID. The checkpointer snapshots state after every node. On the next invoke, it restores from the last checkpoint for that thread.
-
-**Status:** [ ] Not started
+**Status:** ✅ Done
 
 ---
 
@@ -90,6 +66,113 @@ Right now the agent always saves results without asking. Add a confirmation step
 
 | Task | Signal | Status |
 |---|---|---|
-| Streaming | Terminal output appears incrementally, not all at once | [ ] |
-| MemorySaver | Manual `messages` carry-over removed, context still works | [ ] |
+| Streaming | Terminal output appears incrementally, not all at once | ✅ |
+| MemorySaver | Manual `messages` carry-over removed, context still works | ✅ |
 | Human-in-loop | Agent pauses before saving, respects y/n | [ ] |
+
+---
+
+## Session 3 — 2026-06-19
+
+**Goal:** Finish the remaining Session 2 task, then learn three patterns that real production agents use — structured output, parallel execution, and sub-graphs. End with a small real-world project that ties everything together.
+
+**File:** `research_agent.py` for Tasks 3–5. New file `digest_agent.py` for Task 6.
+
+---
+
+### Task 3 (carry-over) — Complete human-in-the-loop
+
+Finish the Task 3 above before starting anything new.
+
+---
+
+### Task 4 — Structured output with Pydantic
+**Concept:** `llm.with_structured_output(Model)`
+
+Right now `summarizer_node` returns a free-form string. Real agents need typed, predictable output — so downstream code can reliably read fields without parsing text.
+
+**What to do:**
+1. Define a Pydantic model for the summary:
+   ```python
+   from pydantic import BaseModel
+
+   class ResearchSummary(BaseModel):
+       title: str           # one-line answer to the question
+       bullets: list[str]   # 3 key facts
+       confidence: str      # "high" | "medium" | "low"
+   ```
+2. In `summarizer_node`, replace `llm.invoke(...)` with `llm.with_structured_output(ResearchSummary).invoke(...)`
+3. The response is now a `ResearchSummary` object, not a string. Update `save_node` to write `result.model_dump()` instead of `summary`
+4. Update the print to show each field cleanly
+
+**Verify:** The summarizer prints a structured object. `research_results.txt` contains JSON with `title`, `bullets`, `confidence` fields.
+
+**Key thing to understand:** `with_structured_output` makes the LLM return a validated Pydantic object every time. This is how you make LLM output reliable enough to use in real code.
+
+**Status:** [ ] Not started
+
+---
+
+### Task 5 — Parallel tool calls with the Send API
+**Concept:** `Send`, fan-out / fan-in pattern
+
+Right now the agent researches one question at a time, sequentially. The `Send` API lets you fan out work across multiple parallel nodes — a core pattern in multi-agent systems.
+
+**What to do:**
+1. Add a `topics: list[str]` field to `ResearchAgentState`
+2. Add a `fan_out_node` that returns a list of `Send` objects — one per topic:
+   ```python
+   from langgraph.types import Send
+
+   def fan_out_node(state):
+       return [Send("agent_node", {**state, "user_question": t, "messages": [HumanMessage(content=t)]})
+               for t in state["topics"]]
+   ```
+3. Wire `START → fan_out_node` with a conditional edge that routes to `fan_out_node` if `topics` is set, else to `agent_node` as before
+4. Each parallel branch runs its own `agent_node → tool_node → summarizer_node` pipeline
+
+**Verify:** Pass `topics=["topic A", "topic B"]` in state. You see two parallel research chains running, each printing their own `[agent_node]` / `[summarizer_node]` lines.
+
+**Key thing to understand:** `Send(node_name, state)` schedules a node invocation with a custom state. LangGraph runs all `Send` targets in parallel. This is how you build fan-out patterns without polling or threads.
+
+**Status:** [ ] Not started
+
+---
+
+### Task 6 — Real-world mini project: Daily Digest Agent
+**Concept:** Applying everything in one coherent agent
+
+Build a new agent in `digest_agent.py` that produces a daily research digest on a list of topics you care about.
+
+**What it should do:**
+1. Accept a hardcoded list of topics at startup (e.g. `["AI news", "Python releases", "space exploration"]`)
+2. Research each topic in parallel using the `Send` fan-out pattern (Task 5)
+3. Each branch produces a `ResearchSummary` (Task 4)
+4. A `compile_digest_node` collects all summaries and formats them into a markdown report
+5. Pause before saving and ask for confirmation (Task 3's interrupt pattern)
+6. Save the report to `digest_YYYY-MM-DD.md`
+
+**State shape to aim for:**
+```python
+class DigestState(TypedDict):
+    topics: list[str]
+    summaries: Annotated[list, operator.add]   # fan-in: each branch appends its summary
+    report: str
+```
+
+**Verify:** Running `python digest_agent.py` researches all topics in parallel, prints the digest, asks `Save? (y/n)`, and writes a dated markdown file on `y`.
+
+**Key thing to understand:** This is a complete, real agent — parallel research, typed output, human approval, persistent output. The same pattern applies to any multi-source research task (competitor monitoring, news digest, report generation).
+
+**Status:** [ ] Not started
+
+---
+
+### Session 3 completion checklist
+
+| Task | Concept | Signal | Status |
+|---|---|---|---|
+| Task 3 | Human-in-loop | Graph pauses, y saves, n skips | [ ] |
+| Task 4 | Structured output | Summarizer returns a Pydantic object | [ ] |
+| Task 5 | Send / fan-out | Two topics research in parallel | [ ] |
+| Task 6 | Real-world project | `digest_agent.py` runs end-to-end | [ ] |
