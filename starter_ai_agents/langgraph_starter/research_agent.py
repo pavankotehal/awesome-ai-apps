@@ -18,6 +18,10 @@ from langgraph import graph
 from langgraph.graph import END, START, StateGraph, add_messages
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.checkpoint.memory import MemorySaver
+# For persistent local storage uncomment the line below and install:
+#   pip install langgraph-checkpoint-sqlite
+# from langgraph.checkpoint.sqlite import SqliteSaver
 # tools
 from tools import wikipedia_search, web_search, save_research_findings
 
@@ -67,12 +71,12 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
                 "save_research_results with the question and your final summary before finishing."
             ),
         }
-        # print the current state for debugging
-        print("Current state in agent_node:", state["messages"])
-        # Send the full conversation history on every call — LLM has no memory between calls.
         response = llm_with_tools.invoke([system] + state["messages"])
-        print("Agent node response:", response.content)
-        print(f"\nTool calls: {response.tool_calls}\n")
+        if response.content:
+            print(f"\n[agent_node]: {response.content}")
+        if response.tool_calls:
+            names = [tc["name"] for tc in response.tool_calls]
+            print(f"\n[agent_node]: calling {names}")
         return {"messages": [response],
                 "turn_count": state["turn_count"] + 1,}  # add_messages reducer appends this
     
@@ -94,7 +98,7 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
         user = {"role": "user", "content": combined}
 
         response = llm.invoke([system, user])
-        print("Summarizer response:", response.content)
+        print(f"\n[summarizer_node]: {response.content}")
         return {"messages": [response],
                 "turn_count": state["turn_count"] + 1,}  # add_messages reducer appends this
     
@@ -108,7 +112,7 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
         }
         with open("research_results.txt", "a") as f:
             f.write(json.dumps(result) + "\n")
-        print("Results saved to research_results.txt")
+        print(f"\n[save_node]: results saved to research_results.txt")
         return {}
     
 
@@ -151,14 +155,13 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
     # - Tool nodes execute the tools and update the state with findings.
     # - Summarizer node takes all findings and generates a final summary.
 
-    return graph.compile()
+    return graph.compile(checkpointer=MemorySaver())  # Use MemorySaver for in-memory checkpointing
 
 if __name__ == "__main__":
     graph = build_research_agent_graph(llm)
-    messages = []
-    research_findings = []
-    research_sources = []
     MAX_CYCLES = 7
+
+    config = {"configurable": {"thread_id": "research-session-1"}}
 
     print("Research Agent ready. Type 'quit' or 'exit' to stop (max 7 questions).\n")
 
@@ -169,16 +172,16 @@ if __name__ == "__main__":
             print("Ending session.")
             break
 
-        messages.append(HumanMessage(content=user_question))
+     
         state = ResearchAgentState(
-            messages=messages,
+            messages=HumanMessage(content=user_question),
             turn_count=0,
             user_question=user_question,
-            research_findings=research_findings,
-            research_sources=research_sources,
+            research_findings=[],
+            research_sources=[],
         )
-        final_state = graph.invoke(state)
-        messages = final_state["messages"]
+        final_state = graph.invoke(state, config=config)
+        # messages = final_state["messages"]
 
         if cycle == MAX_CYCLES - 1:
             print("\nReached maximum of 7 questions. Ending session.")
