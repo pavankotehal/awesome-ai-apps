@@ -109,7 +109,7 @@ Right now `summarizer_node` returns a free-form string. Real agents need typed, 
 
 **Key thing to understand:** `with_structured_output` makes the LLM return a validated Pydantic object every time. This is how you make LLM output reliable enough to use in real code.
 
-**Status:** [ ] Not started
+**Status:** ✅ Done
 
 ---
 
@@ -173,6 +173,6 @@ class DigestState(TypedDict):
 | Task | Concept | Signal | Status |
 |---|---|---|---|
 | Task 3 | Human-in-loop | Graph pauses, y saves, n skips | ✅ |
-| Task 4 | Structured output | Summarizer returns a Pydantic object | [ ] |
+| Task 4 | Structured output | Summarizer returns a Pydantic object | ✅ |
 | Task 5 | Send / fan-out | Two topics research in parallel | [ ] |
 | Task 6 | Real-world project | `digest_agent.py` runs end-to-end | [ ] |

@@ -19,6 +19,8 @@ from langgraph.graph import END, START, StateGraph, add_messages
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.checkpoint.memory import MemorySaver
+from pydantic import BaseModel
+
 # For persistent local storage uncomment the line below and install:
 #   pip install langgraph-checkpoint-sqlite
 # from langgraph.checkpoint.sqlite import SqliteSaver
@@ -27,12 +29,20 @@ from tools import wikipedia_search, web_search, save_research_findings
 
 load_dotenv()
 
+class ResearchSummary(BaseModel):
+    title:str             # one-line answer to the question
+    bullets:list[str]     # 3 key facts
+    confidence: str       # "high" | "medium" | "low"
+
+
 class ResearchAgentState(TypedDict):
     messages: Annotated[list, add_messages]
     turn_count: int
     user_question: str
+    summary: ResearchSummary | None   # add this
     research_findings: list[str]
     research_sources: list[str]
+
 
 llm = ChatLiteLLM(
         model="openai/deepseek-ai/DeepSeek-V3.2",
@@ -97,21 +107,21 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
         }
         user = {"role": "user", "content": combined}
 
-        response = llm.invoke([system, user])
-        print(f"\n[summarizer_node]: {response.content}")
-        return {"messages": [response],
-                "turn_count": state["turn_count"] + 1,}  # add_messages reducer appends this
+        result = llm.with_structured_output(ResearchSummary).invoke([system, user])
+        print(f"\n[summarizer_node]: {result.model_dump()}")
+        return {"turn_count": state["turn_count"] + 1, "summary":result}  # add_messages reducer appends this
     
     # save node
     def save_node(state: ResearchAgentState):
-        summary = state["messages"][-1].content
-        result = {
-            "timestamp": datetime.now().isoformat(),
-            "question": state["user_question"],
-            "summary": summary
-        }
+        summary = state["summary"]
+        # commenting to write the structured putput from llm using pydantic
+        # result = {
+        #     "timestamp": datetime.now().isoformat(),
+        #     "question": state["user_question"],
+        #     "summary": summary
+        # }
         with open("research_results.txt", "a") as f:
-            f.write(json.dumps(result) + "\n")
+            f.write(json.dumps(summary.model_dump()) + "\n")
         print(f"\n[save_node]: results saved to research_results.txt")
         return {}
     
@@ -183,7 +193,7 @@ if __name__ == "__main__":
         final_state = graph.invoke(state, config=config)
         # interput before save_node means we won't see the final summary in the messages, so we print it here:
         # print summary and ask for user feedback on whether to save or not, if not, we can loop back to agent_node for further refinement
-        print(final_state["messages"][-1].content)
+        print(final_state["summary"])
         save_summary = input("\nDo you want to save the research findings? (yes/no): ").strip().lower()
         if save_summary.lower() in ("yes", "y"):
             graph.invoke(None, config=config)
