@@ -58,7 +58,7 @@ Right now the agent always saves results without asking. Add a confirmation step
 
 **Key thing to understand:** `interrupt_before` makes the graph pause *before* that node runs. The state is checkpointed at that point. Calling `invoke(None, config)` resumes from that exact checkpoint.
 
-**Status:** [ ] Not started
+**Status:** ✅ Done
 
 ---
 
@@ -68,7 +68,7 @@ Right now the agent always saves results without asking. Add a confirmation step
 |---|---|---|
 | Streaming | Terminal output appears incrementally, not all at once | ✅ |
 | MemorySaver | Manual `messages` carry-over removed, context still works | ✅ |
-| Human-in-loop | Agent pauses before saving, respects y/n | [ ] |
+| Human-in-loop | Agent pauses before saving, respects y/n | ✅ |
 
 ---
 
@@ -82,7 +82,7 @@ Right now the agent always saves results without asking. Add a confirmation step
 
 ### Task 3 (carry-over) — Complete human-in-the-loop
 
-Finish the Task 3 above before starting anything new.
+**Status:** ✅ Done
 
 ---
 
@@ -172,7 +172,7 @@ class DigestState(TypedDict):
 
 | Task | Concept | Signal | Status |
 |---|---|---|---|
-| Task 3 | Human-in-loop | Graph pauses, y saves, n skips | [ ] |
+| Task 3 | Human-in-loop | Graph pauses, y saves, n skips | ✅ |
 | Task 4 | Structured output | Summarizer returns a Pydantic object | [ ] |
 | Task 5 | Send / fan-out | Two topics research in parallel | [ ] |
 | Task 6 | Real-world project | `digest_agent.py` runs end-to-end | [ ] |

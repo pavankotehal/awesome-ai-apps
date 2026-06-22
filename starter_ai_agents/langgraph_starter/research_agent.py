@@ -155,7 +155,7 @@ def build_research_agent_graph(llm: ChatLiteLLM) -> CompiledStateGraph:
     # - Tool nodes execute the tools and update the state with findings.
     # - Summarizer node takes all findings and generates a final summary.
 
-    return graph.compile(checkpointer=MemorySaver())  # Use MemorySaver for in-memory checkpointing
+    return graph.compile(interrupt_before=["save_node"], checkpointer=MemorySaver())  # Use MemorySaver for in-memory checkpointing
 
 if __name__ == "__main__":
     graph = build_research_agent_graph(llm)
@@ -181,6 +181,15 @@ if __name__ == "__main__":
             research_sources=[],
         )
         final_state = graph.invoke(state, config=config)
+        # interput before save_node means we won't see the final summary in the messages, so we print it here:
+        # print summary and ask for user feedback on whether to save or not, if not, we can loop back to agent_node for further refinement
+        print(final_state["messages"][-1].content)
+        save_summary = input("\nDo you want to save the research findings? (yes/no): ").strip().lower()
+        if save_summary.lower() in ("yes", "y"):
+            graph.invoke(None, config=config)
+            print("Research findings saved.")
+        elif save_summary.lower() in ("no", "n"):
+            continue
         # messages = final_state["messages"]
 
         if cycle == MAX_CYCLES - 1:
