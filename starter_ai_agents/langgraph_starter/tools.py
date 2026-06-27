@@ -1,8 +1,7 @@
 import os
-from typing import Annotated
 from langchain_core.tools import tool
 import wikipedia
-from ddgs import DDGS
+from tavily import TavilyClient
 
 #1. Define the wikipedia search tool
 @tool
@@ -17,27 +16,26 @@ def wikipedia_search(query: str) -> str:
         return "No page found for your query."
     except Exception as e:
         return f"An error occurred: {str(e)}"
-    
-#2. Define the DuckDuckGo search tool
+
+#2. Define the Tavily web search tool
 @tool
 def web_search(query: str, max_results: int = 3) -> str:
     """
-    Search the live internet using DuckDuckGo. 
+    Search the live internet using Tavily.
     Use this tool for current events, recent news, stock prices, or information after 2024.
     """
     try:
-        # Initialize the DuckDuckGo search client
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
-            
+        client = TavilyClient(api_key=os.environ["TAVILY_SEARCH_KEY"])
+        response = client.search(query, max_results=max_results)
+        results = response.get("results", [])
+
         if not results:
             return f"No live web results found for '{query}'."
-            
-        # Format the snippet data into a clean text block for the LLM
+
         formatted_results = []
         for res in results:
-            formatted_results.append(f"Title: {res['title']}\nURL: {res['href']}\nSnippet: {res['body']}\n---")
-            
+            formatted_results.append(f"Title: {res['title']}\nURL: {res['url']}\nSnippet: {res['content']}\n---")
+
         return "\n".join(formatted_results)
     except Exception as e:
         return f"An error occurred during the web search: {str(e)}"
